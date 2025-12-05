@@ -6,9 +6,21 @@ const {auth} = require("./middleware/auth")
 const connectDB = require("./config/database")
 const {validateSignUpData} = require("./utils/validation")
 const bcrypt = require('bcrypt')
+var jwt = require('jsonwebtoken');
+const cookieParser = require("cookie-parser");
+app.use(cookieParser());
+connectDB()
+ .then(()=>{
+console.log("connected to db")
+app.listen(3000, () => {
+ console.log("Server is successfully listening on port 3000");
+});
+ })
+ .catch((err)=>{
+  console.log(err)
+ })
+
 app.use(express.json())
-
-
 app.post("/signup", async (req,res)=>{
    console.log(req.body)
   try{
@@ -28,25 +40,48 @@ app.post("/signup", async (req,res)=>{
       password : hashPassword
     }
   )
-  await newUser.save() 
+  await newUser.save()  
   res.send("added user")
   }catch(err){
        res.status(400).send("error in signup "+ err.message)
   }
   
 })
-app.post("/login",async (req,res)=>{
-  const {email,password} = req.body
-  const user = User.findOne({email:email})
-  if(!user){
-    res.status(400).send("invalid credential")
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).send("Email and password are required");
+    }
+
+    // 1️⃣ Find user by email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).send("Invalid credentials");
+    }
+
+    // 2️⃣ Compare password
+    const isPasswordValid = await user.validatePassword(password)
+
+    if (!isPasswordValid) {
+      return res.status(400).send("Invalid credentials");
+    }
+
+    // 3️⃣ Generate token
+    const token = await user.getJWT()
+
+    // 4️⃣ Set cookie
+    res.cookie("token", token, {
+      expires: new Date(Date.now()+8 *360000) //expires in 8 hrs
+    });
+
+    res.send("Login success");
+  } catch (err) {
+    res.status(500).send("Login failed: " + err.message);
   }
-  const isPasswordValid = bcrypt.compare(password,user.password)
-  if(!isPasswordValid){
-     res.status(400).send("invalid credential")
-  }
-  res.send("login success")
-})
+});
 
 app.patch("/user", async (req,res)=>{
   const userId = req.body.userId;
@@ -67,14 +102,17 @@ app.patch("/user", async (req,res)=>{
     res.status(400).send("update failed "+ err.message)
   }
 })
+ 
 
 
-
-app.get("/getbyemail", async(req,res)=>{
-  const user = await User.find({email:req.body.email})
-
-  res.send(user)
-})
+app.get("/profile", auth, async(req, res) => {
+  try {
+    const user = req.user;
+    res.send({ user });
+  } catch (error) {
+    res.status(500).send({ error: "Something went wrong" });
+  }
+});
 
 app.get("/postupdatebyemail",async(req,res)=>{
   const user = await User.findOneAndUpdate(
@@ -88,16 +126,10 @@ app.get("/postupdatebyemail",async(req,res)=>{
   res.send(user)
 })
 
+app.get("/sendConnectionrequest",auth,async(req,res)=>{
+   res.send("connection req sent")
+})
 
 
 
-connectDB()
- .then(()=>{
-console.log("connected to db")
-app.listen(3000, () => {
- console.log("Server is successfully listening on port 3000");
-});
- })
- .catch((err)=>{
-  console.log(err)
- })
+
