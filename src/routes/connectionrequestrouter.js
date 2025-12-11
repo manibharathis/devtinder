@@ -1,11 +1,41 @@
 const express = require("express");
-const profileRouter = express.Router();
-const User = require("./models/user_model");
-const {auth} = require("./middleware/auth")
-const connectDB = require("./config/database")
-const {validateSignUpData} = require("./utils/validation")
-const bcrypt = require('bcrypt')
-var jwt = require('jsonwebtoken');
-profileRouter.get("/sendConnectionrequest",auth,async(req,res)=>{
+const connectionRequestRouter = express.Router();
+const User = require("../models/user_model");
+const ConnectionRequest =  require('../models/connectionRequest')
+const {auth} = require("../middleware/auth")
+connectionRequestRouter.post("/request/send/:status/:id",auth,async(req,res)=>{
+   const fromUserId = req.user._id;
+   const toUserId = req.params.id;
+   const status = req.params.status;
+   const allowedStatus = ["ignored","interested"]
+      console.log("to user id "+ toUserId)
+      const toUser = await User.findById(toUserId)
+      if(!toUser){
+         res.status(400).send("user not found")
+      }
+      if(!allowedStatus.includes(status)){
+         res.status(400).json({message:"invalid status type "+status})
+      }
+      const existingConnectionRequest = await ConnectionRequest.findOne({
+         $or :[
+            {fromUserId,toUserId},
+            {fromUserId:toUserId,toUserId:fromUserId}
+         ]
+      })
+      if(existingConnectionRequest){
+         res.status(400).send("connection request is already present")
+      }
+      const connectionRequest = new ConnectionRequest({
+         fromUserId,
+         toUserId,
+         status
+      })
+      const data = await connectionRequest.save();
+     res.json({
+      message : `${fromUserId} sent ${status} ${toUserId} `,
+      data
+     })
+
    res.send("connection req sent")
 })
+module.exports = connectionRequestRouter;
