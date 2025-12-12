@@ -10,10 +10,9 @@
 -PATCH profile/password
 
 $connectionrequestrouter
-- POST /REQUEST/SEND/interested/:userId
-- POST /request/send/ignored/:userId
--post /request/review/accepted/:requestId
-- post /request/review/rejected/:requestId
+- POST /REQUEST/SEND/status/:userId
+
+-post /request/review/status/:requestId
 
 ##userrouter
 - GET /user/connections
