@@ -1,10 +1,13 @@
 const express = require("express");
 var cors = require('cors')
+
+const PORT = process.env.PORT || 3000; // fallback only for local
 const app = express();
 app.use(cors({
-    origin : "http://localhost:5173",
-    credentials:true
-}))
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    credentials: true
+}));
+
 const connectDB = require("./config/database")
 const cookieParser = require("cookie-parser");
 
@@ -21,9 +24,9 @@ app.use('/',userConnector)
  connectDB()
  .then(()=>{
 console.log("connected to db")
-app.listen(3000, () => {
- console.log("Server is successfully listening on port 3000");
-});
+  app.listen(PORT, () => {
+        console.log(`Server is successfully listening on port ${PORT}`);
+    });
  })
  .catch((err)=>{
   console.log(err)

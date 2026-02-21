@@ -3,15 +3,15 @@ const UserRouter = express.Router();
 const User = require("../models/user_model");
 const ConnectionRequest =  require('../models/connectionRequest')
 const {auth} = require("../middleware/auth")
-const USER_SAFE_DATA = "firstName lastName"
+const USER_SAFE_DATA = "firstName lastName photoUrl about"
 UserRouter.get("/user/requests/received", auth, async (req, res) => {
   try {
+    
     const loggedInUser = req.user;
-
     const connectionRequests = await ConnectionRequest.find({
       toUserId: loggedInUser._id,
       status: "interested",
-    }).populate("fromUserId", "firstName lastName");
+    }).populate("fromUserId", USER_SAFE_DATA);
     // }).populate("fromUserId", ["firstName", "lastName"]);
 
     res.json({
@@ -75,7 +75,7 @@ try{
 const users = await User.find({
     $and:[
         {_id : {$nin: Array.from(hideUserFromFeed)}},
-        {_id :{$ne:loggedInUser._d}}
+        {_id :{$ne:loggedInUser._id}}
     ]   
 })
  .select(USER_SAFE_DATA)
