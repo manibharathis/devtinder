@@ -70,11 +70,11 @@ authRouter.post("/login", async (req, res) => {
     // 3️⃣ Generate token
     const token = await user.getJWT()
 
-    res.cookie("token", token, {
+      res.cookie("token", token, {
   httpOnly: true,
-  secure: true,
-  sameSite: "None",
-  expires: new Date(Date.now() + 8 * 60 * 60 * 1000) // 8 hours
+  secure: true, // required for HTTPS (Render uses HTTPS)
+  sameSite: "None", // VERY IMPORTANT for cross-domain
+  expires: new Date(Date.now() + 8 * 3600000)
 });
    console.log("login success!")
     res.json( user);
